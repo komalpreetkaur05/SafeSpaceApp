@@ -3,7 +3,6 @@
 import { Bell, LogOut } from "lucide-react";
 import { Button } from "./ui/button"; 
 import { cn } from "@/lib/utils"
-=======
 import { Bell, LogOut } from "lucide-react";
 
 function getInitials(name) {
