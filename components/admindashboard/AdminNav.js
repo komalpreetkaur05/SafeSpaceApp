@@ -3,6 +3,8 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+// REFERENCES: Gemini Code Assist Agent / Gemini-Pro-2 
+
 export default function AdminNav() {
     const pathname = usePathname();
     
