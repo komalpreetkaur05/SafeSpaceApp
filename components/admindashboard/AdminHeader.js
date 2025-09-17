@@ -1,5 +1,7 @@
 'use client';
 
+// REFERENCES: Gemini Code Assist Agent / Gemini-Pro-2 
+
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';

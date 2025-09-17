@@ -1,6 +1,8 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
+// REFERENCES: Gemini Code Assist Agent / Gemini-Pro-2 
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
