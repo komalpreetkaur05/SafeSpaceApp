@@ -1,88 +1,126 @@
 "use client";
 
 import { useState } from "react";
+import { useSignIn, useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Shield } from "lucide-react";
+} from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Shield, Loader2 } from "lucide-react";
 import InteractiveDashboard from "../app/interactive/page.jsx";
-import SiteHeader from "@/components/site-header.jsx";
+import SiteHeader from "../components/site-header.jsx";
+import { mapClerkRoleToAppRole } from "../lib/role";
+
 
 export default function SafespacePlatform() {
-  const [currentUser, setCurrentUser] = useState(null);
+  const { user, isLoaded } = useUser();
+  const { signIn, setActive } = useSignIn();
+  const router = useRouter();
+  
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  // Mock users for demo
-  const mockUsers = {
-    "admin@safespace.com": {
-      id: "1",
-      name: "Admin User",
-      email: "admin@safespace.com",
-      role: "admin",
-    },
-    "leader@safespace.com": {
-      id: "2",
-      name: "Team Leader",
-      email: "leader@safespace.com",
-      role: "team-leader",
-    },
-    "worker@safespace.com": {
-      id: "3",
-      name: "Support Worker",
-      email: "worker@safespace.com",
-      role: "support-worker",
-    },
-  };
+  // If user is already authenticated, show dashboard
+  if (isLoaded && user) {
+    const userRole = mapClerkRoleToAppRole(user);
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <SiteHeader
+          isAuthenticated={true}
+          userName={user.firstName || "User"}
+          onSignOut={() => {}} // Clerk handles this
+        />
+        <InteractiveDashboard
+          userRole={userRole}
+          userName={user.firstName || "User"}
+        />
+      </div>
+    );
+  }
 
-  const handleLogin = () => {
-    const user = mockUsers[loginForm.email];
-    if (user && loginForm.password === "demo123") {
-      setCurrentUser(user);
-    } else {
-      alert("Invalid credentials. Use demo123 as password.");
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    if (!signIn) return;
+
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const result = await signIn.create({
+        identifier: loginForm.email,
+        password: loginForm.password,
+      });
+
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+        // User will be redirected automatically due to the useUser check above
+      } else {
+        // Handle other sign-in flows if needed
+        console.error("Sign-in incomplete:", result);
+        setError("Sign-in failed. Please try again.");
+      }
+    } catch (err) {
+      console.error("Sign-in error:", err);
+      setError("Invalid email or password. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleLogout = () => {
-    setCurrentUser(null);
-    setLoginForm({ email: "", password: "" });
-  };
+  // Show loading while Clerk is initializing
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const isAuthed = Boolean(currentUser);
-
+  // Show  login form 
   return (
     <div className="min-h-screen bg-gray-50">
       <SiteHeader
-        isAuthenticated={isAuthed}
-        userName={currentUser?.name ?? null}
-        onSignOut={handleLogout}
+        isAuthenticated={false}
+        userName={null}
+        onSignOut={() => {}}
       />
 
-      {!isAuthed ? (
-        <section className="flex min-h-[calc(100vh-56px)] items-center justify-center bg-gradient-to-br from-teal-50 to-green-100 p-4">
-          <Card className="w-full max-w-md">
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-teal-600">
-                <img
-                  src="/images/logo.png"
-                  alt="SafeSpace Logo"
-                  className="h-10 w-10"
-                />
-              </div>
-              <CardTitle className="text-2xl font-bold text-gray-900">
-                <span className="text-teal-600">Safe</span>
-                <span className="text-gray-900">Space</span>
-              </CardTitle>
-              <CardDescription>Mental Health Support Platform</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+      <section className="flex min-h-[calc(100vh-56px)] items-center justify-center bg-gradient-to-br from-teal-50 to-green-100 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-teal-600">
+              <img
+                src="/images/logo.png"
+                alt="SafeSpace Logo"
+                className="h-10 w-10"
+              />
+            </div>
+            <CardTitle className="text-2xl font-bold text-gray-900">
+              <span className="text-teal-600">Safe</span>
+              <span className="text-gray-900">Space</span>
+            </CardTitle>
+            <CardDescription>Mental Health Support Platform</CardDescription>
+            <p className="text-sm text-gray-500 mt-2">Staff Members Only</p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <form onSubmit={handleLogin} className="space-y-4">
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-600 px-3 py-2 rounded text-sm">
+                  {error}
+                </div>
+              )}
+              
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -93,8 +131,11 @@ export default function SafespacePlatform() {
                   onChange={(e) =>
                     setLoginForm({ ...loginForm, email: e.target.value })
                   }
+                  required
+                  disabled={isLoading}
                 />
               </div>
+              
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <Input
@@ -105,32 +146,38 @@ export default function SafespacePlatform() {
                   onChange={(e) =>
                     setLoginForm({ ...loginForm, password: e.target.value })
                   }
+                  required
+                  disabled={isLoading}
                 />
               </div>
+              
               <Button
-                onClick={handleLogin}
+                type="submit"
                 className="w-full bg-teal-600 hover:bg-teal-700"
+                disabled={isLoading}
               >
-                Sign In
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Signing In...
+                  </>
+                ) : (
+                  <>
+                    <Shield className="h-4 w-4 mr-2" />
+                    Sign In
+                  </>
+                )}
               </Button>
-              <div className="space-y-1 text-sm text-gray-600">
-                <p>
-                  <strong>Demo Accounts:</strong>
-                </p>
-                <p>Admin: admin@safespace.com</p>
-                <p>Team Leader: leader@safespace.com</p>
-                <p>Support Worker: worker@safespace.com</p>
-                <p>Password: demo123</p>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
-      ) : (
-        <InteractiveDashboard
-          userRole={currentUser.role}
-          userName={currentUser.name.split(" ")[0]}
-        />
-      )}
+            </form>
+            
+            <div className="text-center pt-4 border-t">
+              <p className="text-xs text-gray-500">
+                Need access? Contact your system administrator.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
     </div>
   );
 }

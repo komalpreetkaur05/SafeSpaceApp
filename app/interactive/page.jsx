@@ -1,17 +1,31 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Label } from "@/components/ui/label"
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
-import { Clock, CheckCircle, XCircle, Info, Phone, Mail, MapPin, User, FileText, BarChart3 } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card"
+import { Button } from "../../components/ui/button"
+import { Badge } from "../../components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs"
+import { Label } from "../../components/ui/label"
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../../components/ui/select"
+import { Input } from "../../components/ui/input.jsx"
+import { Textarea } from "../../components/ui/textarea.jsx"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog"
+import { Clock, CheckCircle, XCircle, Info, Phone, Mail, MapPin, User, FileText, BarChart3, AlertTriangle, Calendar, MessageSquare, Edit, Eye, Download, Share2, Shield } from "lucide-react"
+
+
 import { ReferralStatusTracker } from "../referrals/page.jsx"
-import { AdminDashboard } from "../admin/page.jsx"
 import { DashboardOverview } from "../dashboard/page.jsx"
-import ClientActionButtons from "@/components/ClientActionButtons.jsx"
+import ClientActionButtons from "../../components/ClientActionButtons.jsx"
+import ReferralActions from "../../components/ReferralActions.jsx"
+import NewNoteModal from "../../components/Notes/NewNoteModal.jsx"
+import ViewNoteModal from "../../components/Notes/ViewNoteModal.jsx"
+import EditNoteModal from "../../components/Notes/EditNoteModal.jsx"
+import EmergencyCallModal from "../../components/crisis/EmergencyCallModal.jsx"
+import CrisisHotlineModal from "../../components/crisis/CrisisHotlineModal.jsx"
+import SafetyPlanModal from "../../components/clients/SafetyPlanModal.jsx"
+import ContactClientModal from "../../components/crisis/ContactClientModal.jsx"
+import UpdateRiskStatusModal from "../../components/crisis/UpdateRiskStatusModal.jsx"
+import CallSupervisorModal from "../../components/crisis/CallSupervisorModal.jsx"
 
 export default function InteractiveDashboard({ userRole = "support-worker", userName = "User" }) {
   const [referrals, setReferrals] = useState([
@@ -53,6 +67,24 @@ export default function InteractiveDashboard({ userRole = "support-worker", user
       processedDate: "2024-01-14",
       processedBy: "Team Leader",
     },
+    {
+      id: "3",
+      clientName: "Emma Davis",
+      age: 42,
+      referralSource: "Hospital Emergency Department",
+      reason: "Crisis intervention needed for severe depression",
+      priority: "Critical",
+      submittedDate: "2024-01-16",
+      status: "pending",
+      contactInfo: {
+        phone: "(555) 345-6789",
+        email: "emma.davis@email.com",
+        address: "789 Pine St, City, State 12345",
+        emergencyContact: "Robert Davis (Husband) - (555) 654-3210",
+      },
+      additionalNotes: "Patient was brought in after suicide attempt. Requires immediate attention.",
+      submittedBy: "ER Social Worker",
+    },
   ])
 
   const [clients] = useState([
@@ -66,6 +98,32 @@ export default function InteractiveDashboard({ userRole = "support-worker", user
     { id: 2, time: "10:30", client: "Bob Johnson", type: "Group Therapy", duration: "90 min" },
     { id: 3, time: "14:00", client: "Carol Davis", type: "Assessment", duration: "60 min" },
   ])
+
+  // Modal state management
+  const [modals, setModals] = useState({
+    newNote: false,
+    viewNote: false,
+    editNote: false,
+    emergencyCall: false,
+    crisisHotline: false,
+    supervisorCall: false,
+    contactClient: false,
+    updateRiskStatus: false,
+    safetyPlan: false,
+    crisisResources: false,
+    crisisProtocols: false,
+  })
+
+  const [selectedNote, setSelectedNote] = useState(null)
+
+  // Handler for updating referral status
+  const handleReferralStatusUpdate = (referralId, updatedReferral) => {
+    setReferrals((prevReferrals) =>
+      prevReferrals.map((ref) =>
+        ref.id === referralId ? updatedReferral : ref
+      )
+    );
+  };
 
   const handleAcceptReferral = (id) => {
     setReferrals((prev) =>
@@ -110,6 +168,16 @@ export default function InteractiveDashboard({ userRole = "support-worker", user
           : ref,
       ),
     )
+  }
+
+  const openModal = (modalName, item = null) => {
+    setSelectedNote(item)
+    setModals(prev => ({ ...prev, [modalName]: true }))
+  }
+
+  const closeModal = (modalName) => {
+    setModals(prev => ({ ...prev, [modalName]: false }))
+    setSelectedNote(null)
   }
 
   if (userRole === "admin") {
@@ -163,6 +231,11 @@ export default function InteractiveDashboard({ userRole = "support-worker", user
                 <CardContent className="space-y-4">
                   {referrals
                     .filter((r) => r.status === "pending")
+                    .sort((a, b) => {
+                      // Sort by priority: Critical > High > Medium > Low
+                      const priorityOrder = { "Critical": 4, "High": 3, "Medium": 2, "Low": 1 };
+                      return priorityOrder[b.priority] - priorityOrder[a.priority];
+                    })
                     .map((referral) => (
                       <div key={referral.id} className="border rounded-lg p-4 space-y-4">
                         <div className="flex items-start justify-between">
@@ -174,14 +247,23 @@ export default function InteractiveDashboard({ userRole = "support-worker", user
                                 Priority:{" "}
                                 <Badge
                                   variant={
-                                    referral.priority === "High"
+                                    referral.priority === "Critical"
                                       ? "destructive"
-                                      : referral.priority === "Medium"
+                                      : referral.priority === "High"
                                         ? "default"
-                                        : "secondary"
+                                        : referral.priority === "Medium"
+                                          ? "secondary"
+                                          : "outline"
+                                  }
+                                  className={
+                                    referral.priority === "Critical"
+                                      ? "bg-red-600 text-white animate-pulse"
+                                      : referral.priority === "High"
+                                        ? "bg-orange-500 text-white"
+                                        : ""
                                   }
                                 >
-                                  {referral.priority}
+                                  {referral.priority} Priority
                                 </Badge>
                               </div>
                               <div>Source: {referral.referralSource}</div>
@@ -224,28 +306,21 @@ export default function InteractiveDashboard({ userRole = "support-worker", user
                           </div>
                         )}
 
-                        <div className="flex gap-2 pt-2">
-                          <Button
-                            onClick={() => handleAcceptReferral(referral.id)}
-                            className="bg-green-600 hover:bg-green-700"
-                          >
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            Accept
-                          </Button>
-                          <Button variant="destructive" onClick={() => handleDeclineReferral(referral.id)}>
-                            <XCircle className="h-4 w-4 mr-2" />
-                            Decline
-                          </Button>
-                          <Button variant="outline" onClick={() => handleRequestMoreInfo(referral.id)}>
-                            <Info className="h-4 w-4 mr-2" />
-                            Request More Info
-                          </Button>
-                        </div>
+                        <ReferralActions
+                          referral={referral}
+                          onStatusUpdate={handleReferralStatusUpdate}
+                          userRole={userRole}
+                        />
                       </div>
                     ))}
                   {referrals.filter((r) => r.status === "pending").length === 0 && (
-                    <p className="text-center text-gray-500 py-8">No pending referrals</p>
+                    <div className="text-center py-8 text-gray-500">
+                      <CheckCircle className="mx-auto h-16 w-16 mb-4 opacity-50" />
+                      <h3 className="text-lg font-medium mb-2">No pending referrals</h3>
+                      <p className="text-sm">All referrals have been processed.</p>
+                    </div>
                   )}
+
                 </CardContent>
               </Card>
 
@@ -271,6 +346,10 @@ export default function InteractiveDashboard({ userRole = "support-worker", user
                                 : referral.status === "declined"
                                   ? "destructive"
                                   : "secondary"
+                            }
+                            className={
+                              referral.status === "accepted" ? "bg-green-600" :
+                                referral.status === "more-info-requested" ? "bg-orange-100 text-orange-800" : ""
                             }
                           >
                             {referral.status.replace("-", " ")}
@@ -353,6 +432,24 @@ export default function InteractiveDashboard({ userRole = "support-worker", user
         </TabsContent>
 
         <TabsContent value="Notes" className="space-y-6">
+          <NewNoteModal
+            isOpen={modals.newNote}
+            onClose={() => closeModal('newNote')}
+            clients={clients}
+          />
+
+          <ViewNoteModal
+            isOpen={modals.viewNote}
+            onClose={() => closeModal('viewNote')}
+            onEdit={(note) => openModal('editNote', note)}
+            note={selectedNote}
+          />
+
+          <EditNoteModal
+            isOpen={modals.editNote}
+            onClose={() => closeModal('editNote')}
+            note={selectedNote}
+          />
           <Card>
             <CardHeader>
               <CardTitle>Session Notes</CardTitle>
@@ -362,7 +459,7 @@ export default function InteractiveDashboard({ userRole = "support-worker", user
               <div className="grid gap-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold">Recent Session Notes</h3>
-                  <Button>
+                  <Button onClick={() => openModal('newNote')}>
                     <FileText className="h-4 w-4 mr-2" />
                     New Note
                   </Button>
@@ -397,10 +494,10 @@ export default function InteractiveDashboard({ userRole = "support-worker", user
                       <p className="text-sm text-gray-600 mb-2">{note.type}</p>
                       <p className="text-sm">{note.summary}</p>
                       <div className="flex gap-2 mt-3">
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" onClick={() => openModal('viewNote', note)}>
                           View Full Note
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" onClick={() => openModal('editNote', note)} >
                           Edit
                         </Button>
                       </div>
@@ -413,6 +510,35 @@ export default function InteractiveDashboard({ userRole = "support-worker", user
         </TabsContent>
 
         <TabsContent value="Crisis" className="space-y-6">
+          <EmergencyCallModal
+            isOpen={modals.emergencyCall}
+            onClose={() => closeModal('emergencyCall')}
+          />
+          <CrisisHotlineModal
+            isOpen={modals.crisisHotline}
+            onClose={() => closeModal('crisisHotline')}
+          />
+          <SafetyPlanModal
+            isOpen={modals.safetyPlan}
+            onClose={() => closeModal('safetyPlan')}
+          />
+          <ContactClientModal
+            isOpen={modals.contactClient}
+            onClose={() => closeModal('contactClient')}
+            client={selectedNote}
+          />
+          <UpdateRiskStatusModal
+            isOpen={modals.updateRiskStatus}
+            onClose={() => closeModal('updateRiskStatus')}
+            client={selectedNote}
+          />
+          <NewNoteModal isOpen={modals.newNote}
+          onClose={() => closeModal('newNote')} 
+          />
+          
+
+          <CallSupervisorModal isOpen={modals.supervisorCall} onClose={() => closeModal('supervisorCall')} />
+
           <div className="grid gap-6">
             <Card className="border-red-200 bg-red-50">
               <CardHeader>
@@ -423,21 +549,21 @@ export default function InteractiveDashboard({ userRole = "support-worker", user
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Button className="bg-red-600 hover:bg-red-700 h-16">
+                  <Button className="bg-red-600 hover:bg-red-700 h-16" onClick={() => openModal('emergencyCall')}>
                     <div className="text-center">
                       <Phone className="h-6 w-6 mx-auto mb-1" />
                       <div className="text-sm">Emergency Services</div>
                       <div className="text-xs">911</div>
                     </div>
                   </Button>
-                  <Button variant="outline" className="border-red-300 h-16 bg-transparent">
+                  <Button variant="outline" className="border-red-300 h-16 bg-transparent" onClick={() => openModal('crisisHotline')}>
                     <div className="text-center">
                       <Phone className="h-6 w-6 mx-auto mb-1" />
                       <div className="text-sm">Crisis Hotline</div>
                       <div className="text-xs">988</div>
                     </div>
                   </Button>
-                  <Button variant="outline" className="border-red-300 h-16 bg-transparent">
+                  <Button variant="outline" className="border-red-300 h-16 bg-transparent" onClick={() => openModal('supervisorCall')}>
                     <div className="text-center">
                       <User className="h-6 w-6 mx-auto mb-1" />
                       <div className="text-sm">Supervisor</div>
@@ -480,10 +606,15 @@ export default function InteractiveDashboard({ userRole = "support-worker", user
                       <p className="text-sm mb-2">{client.reason}</p>
                       <p className="text-sm text-blue-600">{client.status}</p>
                       <div className="flex gap-2 mt-3">
-                        <Button size="sm">Contact Now</Button>
-                        <Button variant="outline" size="sm">
+                        <Button size="sm" onClick={() => openModal('contactClient', client)}>Contact Now</Button>
+                        <Button variant="outline" size="sm" onClick={() => openModal('updateRiskStatus', client)}>
                           Update Status
                         </Button>
+                        <Button onClick={() => openModal('newNote')}>
+                          <FileText className="h-4 w-4 mr-2" />
+                          Add Note
+                        </Button>
+
                       </div>
                     </div>
                   ))}

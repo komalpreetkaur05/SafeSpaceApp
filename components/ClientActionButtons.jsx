@@ -1,8 +1,8 @@
 import { useState } from "react"
-import ViewProfileModal from "@/components/clients/ViewProfileModal"
-import MessageModal from "@/components/clients/MessageModal"
-import ScheduleModal from "@/components/clients/ScheduleModal"
-import { Button } from "@/components/ui/button"
+import ViewProfileModal from "../components/clients/ViewProfileModal"
+import MessageModal from "../components/clients/MessageModal"
+import ScheduleModal from "../components/clients/ScheduleModal"
+import { Button } from "../components/ui/button"
 
 export default function ClientActionButtons({ client }) {
   const [showProfile, setShowProfile] = useState(false)
