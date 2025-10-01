@@ -1,0 +1,37 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int      @id @default(autoincrement())
+  clerkUserId   String?  @unique @map("clerk_user_id")
+  firstName     String   @map("first_name")
+  lastName      String   @map("last_name")
+  email         String   @unique
+  role          Role
+  lastLogin     DateTime? @map("last_login")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @default(now()) @map("updated_at")
+}
+
+enum Role {
+  admin
+  team_leader
+  support_worker
+  patient
+}
+
+model Referral {
+  id                    Int      @id @default(autoincrement())
+  clientName            String
+  notes                 String? 
+  createdByClerkUserId  String   // store Clerk user id
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}

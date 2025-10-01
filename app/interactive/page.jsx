@@ -37,68 +37,8 @@ import jsPDF from "jspdf"
 
 
 export default function InteractiveDashboard({ userRole = "support-worker", userName = "User" }) {
-  const [referrals, setReferrals] = useState([
-    {
-      id: "1",
-      clientName: "Sarah Johnson",
-      age: 28,
-      referralSource: "Community Health Center",
-      reason: "Anxiety and depression following job loss",
-      priority: "High",
-      submittedDate: "2024-01-15",
-      status: "pending",
-      contactInfo: {
-        phone: "(555) 123-4567",
-        email: "sarah.j@email.com",
-        address: "123 Main St, City, State 12345",
-        emergencyContact: "John Johnson (Brother) - (555) 987-6543",
-      },
-      additionalNotes: "Client has expressed suicidal ideation. Immediate assessment recommended.",
-      submittedBy: "Admin User",
-    },
-    {
-      id: "2",
-      clientName: "Michael Chen",
-      age: 35,
-      referralSource: "Primary Care Physician",
-      reason: "PTSD symptoms after car accident",
-      priority: "Medium",
-      submittedDate: "2024-01-14",
-      status: "accepted",
-      contactInfo: {
-        phone: "(555) 234-5678",
-        email: "m.chen@email.com",
-        address: "456 Oak Ave, City, State 12345",
-        emergencyContact: "Lisa Chen (Wife) - (555) 876-5432",
-      },
-      additionalNotes: "Client is motivated for treatment. Has good family support.",
-      submittedBy: "Admin User",
-      processedDate: "2024-01-14",
-      processedBy: "Team Leader",
-    },
-
-
-    {
-      id: "3",
-      clientName: "Emma Davis",
-      age: 42,
-      referralSource: "Hospital Emergency Department",
-      reason: "Crisis intervention needed for severe depression",
-      priority: "Critical",
-      submittedDate: "2024-01-16",
-      status: "pending",
-      contactInfo: {
-        phone: "(555) 345-6789",
-        email: "emma.davis@email.com",
-        address: "789 Pine St, City, State 12345",
-        emergencyContact: "Robert Davis (Husband) - (555) 654-3210",
-      },
-      additionalNotes: "Patient was brought in after suicide attempt. Requires immediate attention.",
-      submittedBy: "ER Social Worker",
-    },
-
-  ])
-
+  const [referrals, setReferrals] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [clients] = useState([
     { id: 1, name: "Alice Smith", status: "Active", lastSession: "2024-01-10", riskLevel: "Low" },
     { id: 2, name: "Bob Johnson", status: "Active", lastSession: "2024-01-08", riskLevel: "Medium" },
@@ -188,59 +128,50 @@ export default function InteractiveDashboard({ userRole = "support-worker", user
   const [selectedNote, setSelectedNote] = useState(null)
 
 
-  // Handler for updating referral status
-  const handleReferralStatusUpdate = (referralId, updatedReferral) => {
-    setReferrals((prevReferrals) =>
-      prevReferrals.map((ref) =>
-        ref.id === referralId ? updatedReferral : ref
+  //  Fetch referrals from backend 
+  useEffect(() => {
+    const fetchReferrals = async () => {
+      try {
+        setLoading(true)
+        const res = await fetch("/api/referrals")
+        if (!res.ok) throw new Error("Failed to fetch referrals")
+        const data = await res.json()
+        setReferrals(data)
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    if (userRole === "team-leader") fetchReferrals()
+  }, [userRole])
+
+  // ---------------- Referral Actions ----------------
+  const handleReferralStatusUpdate = async (id, status) => {
+    try {
+      const res = await fetch(`/api/referrals/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status,
+          processedBy: userName,
+        }),
+      })
+      if (!res.ok) throw new Error("Failed to update referral")
+      const updatedReferral = await res.json()
+      setReferrals(prev =>
+        prev.map(ref => (ref.id === id ? updatedReferral : ref))
       )
-    );
-  };
-
-  const handleAcceptReferral = (id) => {
-    setReferrals((prev) =>
-      prev.map((ref) =>
-        ref.id === id
-          ? {
-            ...ref,
-            status: "accepted",
-            processedDate: new Date().toISOString().split("T")[0],
-            processedBy: userName,
-          }
-          : ref,
-      ),
-    )
+    } catch (err) {
+      console.error(err)
+      alert("Error updating referral")
+    }
   }
 
-  const handleDeclineReferral = (id) => {
-    setReferrals((prev) =>
-      prev.map((ref) =>
-        ref.id === id
-          ? {
-            ...ref,
-            status: "declined",
-            processedDate: new Date().toISOString().split("T")[0],
-            processedBy: userName,
-          }
-          : ref,
-      ),
-    )
-  }
+  const handleAcceptReferral = (id) => handleReferralStatusUpdate(id, "accepted")
+  const handleDeclineReferral = (id) => handleReferralStatusUpdate(id, "declined")
+  const handleRequestMoreInfo = (id) => handleReferralStatusUpdate(id, "more-info-requested")
 
-  const handleRequestMoreInfo = (id) => {
-    setReferrals((prev) =>
-      prev.map((ref) =>
-        ref.id === id
-          ? {
-            ...ref,
-            status: "more-info-requested",
-            processedDate: new Date().toISOString().split("T")[0],
-            processedBy: userName,
-          }
-          : ref,
-      ),
-    )
-  }
 
   const openModal = (modalName, item = null) => {
     setSelectedNote(item)
@@ -290,41 +221,43 @@ export default function InteractiveDashboard({ userRole = "support-worker", user
                 <CardDescription>Review and manage incoming client referrals</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {referrals.map((referral) => (
-                    <div key={referral.id} className="border rounded-lg p-4">
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <h3 className="font-semibold">{referral.clientName}</h3>
-                          <p className="text-sm text-gray-600">Age: {referral.age} • Source: {referral.referralSource}</p>
+                {loading ? (
+                  <p>Loading referrals...</p>
+                ) : (
+                  <div className="space-y-4">
+                    {referrals.map(referral => (
+                      <div key={referral.id} className="border rounded-lg p-4">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h3 className="font-semibold">{referral.client_name}</h3>
+                            <p className="text-sm text-gray-600">
+                              Age: {referral.age} • Source: {referral.referral_source}
+                            </p>
+                          </div>
+                          <Badge variant={referral.priority_level === "High" ? "destructive" : "default"}>
+                            {referral.priority_level} Priority
+                          </Badge>
                         </div>
-                        <Badge variant={referral.priority === "High" ? "destructive" : "default"}>
-                          {referral.priority} Priority
-                        </Badge>
+                        <p className="text-sm mb-3">{referral.reason_for_referral}</p>
+                        {referral.status === "pending" ? (
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={() => handleAcceptReferral(referral.id)}>
+                              <CheckCircle className="h-4 w-4 mr-1" /> Accept
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => handleDeclineReferral(referral.id)}>
+                              <XCircle className="h-4 w-4 mr-1" /> Decline
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => handleRequestMoreInfo(referral.id)}>
+                              <Info className="h-4 w-4 mr-1" /> More Info
+                            </Button>
+                          </div>
+                        ) : (
+                          <Badge variant="secondary">{referral.status}</Badge>
+                        )}
                       </div>
-                      <p className="text-sm mb-3">{referral.reason}</p>
-                      {referral.status === "pending" && (
-                        <div className="flex gap-2">
-                          <Button size="sm" onClick={() => handleAcceptReferral(referral.id)}>
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            Accept
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => handleDeclineReferral(referral.id)}>
-                            <XCircle className="h-4 w-4 mr-1" />
-                            Decline
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => handleRequestMoreInfo(referral.id)}>
-                            <Info className="h-4 w-4 mr-1" />
-                            More Info
-                          </Button>
-                        </div>
-                      )}
-                      {referral.status !== "pending" && (
-                        <Badge variant="secondary">{referral.status.replace("-", " ").toUpperCase()}</Badge>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
