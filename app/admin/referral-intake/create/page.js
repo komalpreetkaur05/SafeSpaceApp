@@ -1,3 +1,11 @@
+// REFERENCES: Gemini Code Assist Agent / Gemini-Pro-2 
+"Refactor code to use best practices for React and Next.js, ensuring accessibility and responsiveness."
+" Correct useState and event handlers for form management."
+"Create event object for the form submission, Admin should be able to submit a upload along with referral details."
+"Organize structure so majority of Javascript log is at the top and the div structure/HTML is at the bottom."
+
+
+
 'use client';
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
