@@ -4,7 +4,8 @@ import { useRouter } from 'next/navigation';
 
 
 // REFERENCES: Gemini Code Assist Agent / Gemini-Pro-2 
-
+"Refactor code to use best practices for React and Next.js, ensuring accessibility and responsiveness."
+" Correct useState and event handlers for form management."
 // --- Create User Form Page ---
 /**
  * The main page for creating a new user account.

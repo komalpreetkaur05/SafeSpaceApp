@@ -1,53 +1,65 @@
-# Debugging Journey: User Creation in SafeSpace Admin Dashboard
+# SafeSpace Application Overview
 
-## Initial Problem
+## Project Overview
 
-The primary goal is to allow an admin user to create new users (Support Workers and Team Leaders) from the admin dashboard. These new users should then be able to log in and be redirected to the appropriate dashboard with the correct permissions.
+SafeSpace is a web application designed to support mental health professionals and their clients. It provides a secure and centralized platform for managing client information, appointments, notes, and other critical data. The application is built with a focus on security, scalability, and ease of use, aiming to streamline the workflow of support workers, team leaders, and administrators.
 
-The initial implementation had a flaw where creating a user in the admin panel only added them to the local PostgreSQL database, but not to the Clerk authentication service. This resulted in a "Couldn't find your account" error when the new user tried to log in.
+## Technologies Used
 
-## Attempts to Fix the Issue
+*   **Frontend:**
+    *   [Next.js](https://nextjs.org/): A React framework for building server-side rendered and static web applications.
+    *   [React](https://reactjs.org/): A JavaScript library for building user interfaces.
+    *   [Tailwind CSS](https://tailwindcss.com/): A utility-first CSS framework for rapid UI development.
+    *   [Radix UI](https://www.radix-ui.com/): A collection of unstyled, accessible UI components.
+*   **Backend:**
+    *   [Next.js API Routes](https://nextjs.org/docs/api-routes/introduction): For building the application's backend API.
+    *   [PostgreSQL](https://www.postgresql.org/): A powerful, open-source object-relational database system.
+    *   [pg](https://node-postgres.com/): A Node.js client for PostgreSQL.
+*   **Authentication:**
+    *   [Clerk](https://clerk.com/): A complete user management and authentication service.
+*   **Deployment:**
+    *   The application is set up to be deployed on a platform that supports Next.js, such as Vercel.
 
-Here is a summary of the various attempts made to resolve this issue:
+## Database Schema
 
-### 1. Correcting the User Creation Endpoint
+The database schema is organized into several tables to manage different aspects of the application:
 
-*   **Problem:** The user creation form was submitting to the wrong API endpoint (`/api/admin/users` instead of `/api/admin/create-user`).
-*   **Fix:** The `fetch` request in `app/admin/users/create/page.js` was updated to point to the correct endpoint (`/api/admin/create-user`).
+*   **`users`**: Stores user information, including their name, email, role, and Clerk ID.
+*   **`roles`**: Defines the different user roles within the system (e.g., 'admin', 'team-leader', 'support-worker', 'patient').
+*   **`clients`**: Contains client information, such as their name, status, risk level, and contact details.
+*   **`appointments`**: Manages appointment scheduling, including the client, date, time, and type of session.
+*   **`notes`**: Allows users to record notes about client sessions, including summaries, detailed notes, and risk assessments.
+*   **`crisis_events`**: Logs crisis events, such as emergency calls, safety plan activations, and supervisor consultations.
+*   **`referrals`**: Tracks client referrals, including the source, priority, and status of the referral.
+*   **`system_metrics`**: Stores system-level metrics for monitoring and analysis.
+*   **`audit_logs`**: Records user actions for auditing and security purposes.
+*   **`mood_journal`**: A feature for clients to track their mood and journal their thoughts.
+*   **`reports`**: Stores generated reports, such as caseload summaries and session reports.
+*   **`safety_plans`**: Manages client safety plans, including warning signs, coping strategies, and emergency contacts.
+*   **`system_alerts`**: Stores system-wide alerts and notifications.
 
-### 2. Handling Session Synchronization
+## User Roles and Permissions
 
-This has been the most challenging part of the debugging process. The core issue is that after a user's role is updated in Clerk's `public_metadata`, the session claims are not immediately updated. This causes authorization checks to fail.
+The application defines the following user roles:
 
-Here are the different approaches we tried to solve this:
+*   **Admin:** Has full access to the system, including user management, system monitoring, and reporting.
+*   **Team Leader:** Can manage a team of support workers, oversee client cases, and generate reports.
+*   **Support Worker:** Works directly with clients, manages appointments, and records notes.
+*   **Patient:** Can access their own information, use the mood journal, and view their safety plan.
 
-*   **Updating `public_metadata` on Login:** The `/api/get-user-role` endpoint was modified to update the user's `public_metadata` in Clerk with their role from the database. This was done to ensure that the role is correct in Clerk.
+## Key Features
 
-*   **The `/syncing` Page:** A temporary `/syncing` page was created to poll an `/api/check-role` endpoint until the user's role was available in the session claims. This was an attempt to work around the session synchronization delay.
-    *   This approach was ultimately abandoned because it was not user-friendly and was not solving the root cause of the problem.
+*   **User Management:** Admins can create, edit, and manage users and their roles.
+*   **Client Management:** Support workers can manage client information, track their progress, and maintain a record of their interactions.
+*   **Appointment Scheduling:** Users can schedule and manage appointments with clients.
+*   **Clinical Notes:** Support workers can create and manage detailed notes for each client session.
+*   **Crisis Management:** The application provides tools for managing crisis events, including logging events and activating safety plans.
+*   **Referral Tracking:** The system allows for the tracking of client referrals from intake to completion.
+*   **Mood Journaling:** Clients can use the mood journal to track their emotional well-being.
+*   **Reporting and Analytics:** The application provides reporting and analytics features to help users gain insights into their work.
+*   **Safety Plans:** Users can create and manage safety plans for clients at risk.
+*   **System Monitoring:** Admins can monitor system metrics and view audit logs.
 
-*   **Adding a Delay:** A 2-second delay was added to the `/api/get-user-role` endpoint to give the session time to be updated. This is a hacky solution and not reliable.
+## Authentication and Authorization
 
-*   **Rewriting the Middleware:** The Clerk middleware in `middleware.ts` was rewritten multiple times to try to fix the session issue. We tried different configurations, including `createRouteMatcher`, but none of them solved the problem.
-
-*   **Fetching User Data Directly:** The authorization checks in the API routes (`/api/admin/create-user` and `/api/check-role`) were modified to fetch the user's data directly from the Clerk API instead of relying on the session claims. This was done to bypass the session cache issue.
-
-### 3. Database Schema Issues
-
-*   **Missing `clerk_user_id` column:** The `users` table was missing a column to store the user's Clerk ID. This was fixed by adding a `clerk_user_id` column to the table.
-
-*   **`NOT NULL` constraint violation:** The `role` column in the `users` table was being set to `NULL` because of a variable name mismatch in the `create-user` endpoint. This was fixed by correcting the variable names.
-
-## Relevant Files for Debugging
-
-To provide more context for debugging this issue, here is a list of the top 9 most relevant files:
-
-1.  `c:\Users\Sam\SafeSpaceApp\app\api\admin\create-user\route.js`: The API endpoint for creating a new user.
-2.  `c:\Users\Sam\SafeSpaceApp\app\api\get-user-role\route.js`: The API endpoint for getting and updating a user's role.
-3.  `c:\Users\Sam\SafeSpaceApp\app\page.js`: The main login page.
-4.  `c:\Users\Sam\SafeSpaceApp\app\admin\users\create\page.js`: The user creation form in the admin dashboard.
-5.  `c:\Users\Sam\SafeSpaceApp\middleware.ts`: The Clerk middleware for authentication.
-6.  `c:\Users\Sam\SafeSpaceApp\schema\00_users_and_lookup_tables.sql`: The database schema for the `users` table.
-7.  `c:\Users\Sam\SafeSpaceApp\app\dashboard\page.jsx`: The dashboard for Support Workers and Team Leaders.
-8.  `c:\Users\Sam\SafeSpaceApp\app\admin\overview\page.js`: The main overview page for the admin dashboard.
-9.  `c:\Users\Sam\SafeSpaceApp\package.json`: To see the project dependencies.
+Authentication is handled by [Clerk](https://clerk.com/), which provides a secure and reliable way to manage user sign-up, sign-in, and session management. User roles and permissions are stored in the application's database and synchronized with Clerk's `public_metadata`. This allows the application to control access to different routes and features based on the user's role. The Next.js middleware is used to protect routes and ensure that only authorized users can access certain parts of the application.
