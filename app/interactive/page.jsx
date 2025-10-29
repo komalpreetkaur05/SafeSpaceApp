@@ -39,7 +39,6 @@ import { cn } from "@/lib/utils";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import jsPDF from "jspdf";
 import * as XLSX from 'xlsx';
-
 function InteractiveDashboardContent({ user, userRole = "support-worker", userName = "User", getToken, defaultTab }) {
   const { mutate } = useSWRConfig();
   const [referrals, setReferrals] = useState([]);
@@ -280,7 +279,7 @@ function InteractiveDashboardContent({ user, userRole = "support-worker", userNa
         body: JSON.stringify({ reportType, dateRange }),
       });
       if (!res.ok) throw new Error('Failed to generate report.');
-      const { data, generatedAt } = await res.json();
+t t      const { data, generatedAt } = await res.json();
       const newReport = {
         name: `${data.reportType} Report`,
         type: reportType === 'sessions' ? 'Excel' : 'PDF', // Or determine based on reportType
