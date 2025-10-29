@@ -150,11 +150,12 @@ function InteractiveDashboardContent({ user, userRole = "support-worker", userNa
         setAuditLogs(Array.isArray(auditData) ? auditData : []);
       } else {
         console.error("Failed to fetch audit logs:", auditRes.status, auditRes.statusText);
-      if (reportRes.ok) {
-        const reportData = await reportRes.json();
-        setRecentReports(Array.isArray(reportData) ? reportData : []);
-      } else {
-        console.error("Failed to fetch reports:", reportRes.status, reportRes.statusText);
+        if (reportRes.ok) {
+          const reportData = await reportRes.json();
+          setRecentReports(Array.isArray(reportData) ? reportData : []);
+        } else {
+          console.error("Failed to fetch reports:", reportRes.status, reportRes.statusText);
+        }
       }
 
       // Conditionally fetch referrals and assignable users
@@ -177,7 +178,7 @@ function InteractiveDashboardContent({ user, userRole = "support-worker", userNa
         } else {
           console.error("Failed to fetch assignable users:", usersRes.status, usersRes.statusText);
         }
-      });
+      }
 
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -356,18 +357,24 @@ function InteractiveDashboardContent({ user, userRole = "support-worker", userNa
   const openChat = async (otherUser, channelName) => {
     let otherUserId = otherUser;
     let dynamicChannelName = channelName;
-
-    if (typeof otherUser === 'object' && otherUser !== null) {
-      otherUserId = otherUser.user_id;
+    
+    // Handle different types of 'otherUser' input
+    if (typeof otherUser === 'object' && otherUser !== null && otherUser.id) {
+      // Assumes a client object
+      otherUserId = otherUser.id; // Assuming client object has a user_id or similar
       dynamicChannelName = `${otherUser.client_first_name} ${otherUser.client_last_name}`;
-    } else if (String(otherUser).includes('@')) {
-      const response = await fetch(`/api/users/${otherUser}`);
-      const data = await response.json();
-      if (data.userId) {
-        otherUserId = data.userId;
-      } else {
-        console.error('User not found for email:', otherUser);
-        return;
+    } else if (typeof otherUser === 'string') {
+      // Can be a user ID or an email
+      if (otherUser.includes('@')) {
+        // It's an email, look up the user ID
+        const userResponse = await fetch(`/api/users/by-email/${otherUser}`);
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          otherUserId = userData.userId;
+        } else {
+          console.error('User not found for email:', otherUser);
+          return;
+        }
       }
     }
 
@@ -617,51 +624,55 @@ function InteractiveDashboardContent({ user, userRole = "support-worker", userNa
                               className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                             />
                           </div>
-                        </div>
+                        </CardHeader>
+                        <CardContent>
+                          {filteredReferrals.filter(r => r.status && ['pending', 'in-review'].includes(r.status.toLowerCase())).map(referral => (
+                            <div key={referral.id} className="border rounded-lg p-4 space-y-4 mb-4">
+                              <div className="space-y-2">
+                                <h4 className="font-medium">Reason for Referral:</h4>
+                                <p className="text-sm text-gray-700">{referral.reason_for_referral}</p>
+                              </div>
 
-                        <div className="space-y-2">
-                          <h4 className="font-medium">Reason for Referral:</h4>
-                          <p className="text-sm text-gray-700">{referral.reason_for_referral}</p>
-                        </div>
+                              <div className="space-y-2">
+                                <h4 className="font-medium">Contact Information:</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                                  <div className="flex items-center gap-2">
+                                    <Phone className="h-4 w-4" />
+                                    {referral.phone}
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Mail className="h-4 w-4" />
+                                    {referral.email}
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <MapPin className="h-4 w-4" />
+                                    {referral.address}
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <User className="h-4 w-4" />
+                                    {referral.emergency_first_name} {referral.emergency_last_name} - {referral.emergency_phone}
+                                  </div>
+                                </div>
+                              </div>
 
-                        <div className="space-y-2">
-                          <h4 className="font-medium">Contact Information:</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                            <div className="flex items-center gap-2">
-                              <Phone className="h-4 w-4" />
-                              {referral.phone}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Mail className="h-4 w-4" />
-                              {referral.email}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <MapPin className="h-4 w-4" />
-                              {referral.address}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <User className="h-4 w-4" />
-                              {referral.emergency_first_name} {referral.emergency_last_name} - {referral.emergency_phone}
-                            </div>
-                          </div>
-                        </div>
+                              {referral.additional_notes && (
+                                <div className="space-y-2">
+                                  <h4 className="font-medium">Additional Notes:</h4>
+                                  <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded">{referral.additional_notes}</p>
+                                </div>
+                              )}
 
-                        {referral.additional_notes && (
-                          <div className="space-y-2">
-                            <h4 className="font-medium">Additional Notes:</h4>
-                            <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded">{referral.additional_notes}</p>
-                          </div>
-                        )}
-
-                        <ReferralActions
-                          referral={referral}
-                          onStatusUpdate={handleReferralStatusUpdate}
-                          userRole={userRole}
-                          assignableUsers={assignableUsers}
-                          onStartChat={openChat}
-                        />
-                      </div>
-                    ))}
+                              <ReferralActions
+                                referral={referral}
+                                onStatusUpdate={handleReferralStatusUpdate}
+                                userRole={userRole}
+                                assignableUsers={assignableUsers}
+                                onStartChat={openChat}
+                              />
+                            </div>
+                          ))}
+                        </CardContent>
+                      </Card>
 
                     {referrals.filter(r => r.status && ['pending', 'in-review'].includes(r.status.toLowerCase())).length === 0 && (
                       <div className="text-center py-8 text-gray-500">
