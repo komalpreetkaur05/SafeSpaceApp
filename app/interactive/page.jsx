@@ -280,10 +280,15 @@ function InteractiveDashboardContent({ user, userRole = "support-worker", userNa
         body: JSON.stringify({ reportType, dateRange }),
       });
       if (!res.ok) throw new Error('Failed to generate report.');
-      const newReport = await res.json();
+      const { data, generatedAt } = await res.json();
+      const newReport = {
+        name: `${data.reportType} Report`,
+        type: reportType === 'sessions' ? 'Excel' : 'PDF', // Or determine based on reportType
+        date: generatedAt,
+        data: JSON.stringify(data),
+      };
       setRecentReports(prev => [newReport, ...prev]);
-     setReportData(newReport.data);
-
+      setReportData({ ...newReport, ...data }); // For viewing in modal
     } catch (err) {
       console.error("Error generating report:", err);
       setError(err.message);
@@ -337,6 +342,27 @@ function InteractiveDashboardContent({ user, userRole = "support-worker", userNa
     const data = await response.json();
     setChannelUrl(data.channelUrl);
     setShowChat(true);
+  };
+
+  const downloadWordDoc = (report) => {
+    const reportData = JSON.parse(report.data);
+    let content = `<h1>${report.name}</h1>`;
+    content += `<p>Generated on: ${new Date(report.date).toLocaleString()}</p>`;
+    content += '<table border="1" style="border-collapse: collapse; width: 100%;">';
+    
+    for (const [key, value] of Object.entries(reportData)) {
+      content += `<tr><td style="padding: 8px; font-weight: bold;">${key.replace(/_/g, " ")}</td><td style="padding: 8px;">`;
+      if (typeof value === "object" && value !== null) {
+        content += Object.entries(value).map(([subKey, subValue]) => `${subKey}: ${subValue}`).join('<br>');
+      } else {
+        content += String(value);
+      }
+      content += '</td></tr>';
+    }
+    
+    content += '</table>';
+    const blob = new Blob(['<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>Report</title></head><body>' + content + '</body></html>'], { type: 'application/msword' });
+    saveAs(blob, `${report.name}-download.doc`);
   };
 
   return (
@@ -839,13 +865,15 @@ function InteractiveDashboardContent({ user, userRole = "support-worker", userNa
                   )}
                 </Button>
 
-                {reportData && (
-                  <div className="mt-4 p-4 border rounded-lg bg-gray-50">
-                    <h4 className="font-medium mb-2">Report Generated</h4>
-                    <pre className="text-sm text-gray-600">
-                      {JSON.stringify(reportData, null, 2)}
-                    </pre>
-                  </div>
+                {reportData && !loading && (
+                  <ViewReportModal
+                    report={{
+                      name: `${reportData.reportType} Report`,
+                      ...reportData,
+                    }}
+                    open={!!reportData}
+                    onClose={() => setReportData(null)}
+                  />
                 )}
               </CardContent>
             </Card>
@@ -862,7 +890,7 @@ function InteractiveDashboardContent({ user, userRole = "support-worker", userNa
                       <div>
                         <p className="font-medium">{report.name}</p>
                         <p className="text-sm text-gray-600">
-                          {report.date} • {report.type} • {report.size}
+                          {new Date(report.date).toLocaleString()} • {report.type}
                         </p>
                       </div>
                       <div className="flex gap-2">
@@ -882,13 +910,15 @@ function InteractiveDashboardContent({ user, userRole = "support-worker", userNa
                           onClick={() => {
                             if (report.type === 'PDF') {
                               const doc = new jsPDF();
-                              doc.text(JSON.stringify(report.data, null, 2), 10, 10);
-                              doc.save(`${report.name}.pdf`);
+                              doc.text(JSON.stringify(JSON.parse(report.data), null, 2), 10, 10);
+                              doc.save(`${report.name}-download.pdf`);
                             } else if (report.type === 'Excel') {
-                              const worksheet = XLSX.utils.json_to_sheet(report.data.sessions);
+                              const worksheet = XLSX.utils.json_to_sheet(JSON.parse(report.data).sessions);
                               const workbook = XLSX.utils.book_new();
                               XLSX.utils.book_append_sheet(workbook, worksheet, "Sessions");
-                              XLSX.writeFile(workbook, `${report.name}.xlsx`);
+                              XLSX.writeFile(workbook, `${report.name}-download.xlsx`);
+                            } else if (report.type === 'Word') {
+                              downloadWordDoc(report);
                             } else {
                               alert(`Downloading ${report.type} files is not yet supported.`);
                             }

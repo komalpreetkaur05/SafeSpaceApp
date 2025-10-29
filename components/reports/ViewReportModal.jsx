@@ -6,21 +6,28 @@ import { Button } from "@/components/ui/button"
 export default function ViewReportModal({ report, open, onClose }) {
   if (!report) return null
 
+  let reportData;
+  try {
+    reportData = typeof report.data === 'string' ? JSON.parse(report.data) : report.data;
+  } catch (e) {
+    reportData = {};
+  }
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{report.name}</DialogTitle>
           <DialogDescription>
-            {report.date} • {report.type}
+            {new Date(report.date).toLocaleString()} • {report.type}
           </DialogDescription>
         </DialogHeader>
 
         <div className="mt-4 max-h-96 overflow-y-auto p-2 bg-gray-50 border rounded">
-          {report.data ? (
+          {reportData ? (
             <table className="w-full text-sm text-left border-collapse">
               <tbody>
-                {Object.entries(report.data).map(([key, value]) => (
+                {Object.entries(reportData).map(([key, value]) => (
                   <tr key={key} className="border-b last:border-b-0">
                     <td className="py-2 px-4 font-medium capitalize text-gray-700">
                       {key.replace(/_/g, " ")}
