@@ -279,7 +279,7 @@ function InteractiveDashboardContent({ user, userRole = "support-worker", userNa
         body: JSON.stringify({ reportType, dateRange }),
       });
       if (!res.ok) throw new Error('Failed to generate report.');
-t t      const { data, generatedAt } = await res.json();
+     const { data, generatedAt } = await res.json();
       const newReport = {
         name: `${data.reportType} Report`,
         type: reportType === 'sessions' ? 'Excel' : 'PDF', // Or determine based on reportType
