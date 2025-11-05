@@ -154,7 +154,7 @@ function InteractiveDashboardContent({ user, userRole = "support-worker", userNa
           setAssignableUsers(Array.isArray(usersData) ? usersData : []);
         } else {
         }
-      });
+      }
 
     } catch (error) {
       setError("Failed to load data. Please try again.");
