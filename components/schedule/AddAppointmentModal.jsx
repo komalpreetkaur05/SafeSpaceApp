@@ -1,6 +1,10 @@
+// 'use client' directive marks this component for client-side rendering in Next.js
 'use client';
 
-import { useState, useEffect } from 'react';
+// Import necessary React hook for managing state
+import { useState } from 'react';
+
+// Import Dialog components from a UI library (likely Shadcn UI based on component names)
 import {
   Dialog,
   DialogTrigger,
@@ -8,8 +12,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogClose,
 } from '@/components/ui/dialog';
-
+// Import Button, Input, Label, Select, and Textarea components
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,56 +27,59 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 
+// Import icons from lucide-react library
 import { Loader2, Calendar, Clock, User, FileText } from 'lucide-react';
 
-export default function AddAppointmentModal({
-  onAdd,
-  clients = [], // ✅ Default safe empty array so .map() won't crash
-  prefilledSlot,
-  onClose,
-}) {
-  const [isOpen, setIsOpen] = useState(false);
+/**
+ * AddAppointmentModal Component
+ *
+ * A modal component for scheduling a new appointment. It handles form state,
+ * submission, API call, loading, and error states.
+ *
+ * @param {Object} props - The component props.
+ * @param {function(Object): void} props.onAdd - Callback function to be executed after
+ * a successful appointment creation, receiving the new appointment data.
+ * @param {Array<Object>} props.clients - An array of client objects to populate
+ * the client selection dropdown. Each client object should have 'id', 'client_first_name', and 'client_last_name'.
+ * @returns {JSX.Element} The Add Appointment Modal component.
+ */
+export default function AddAppointmentModal({ onAdd, clients = [] }) {
+  // State to control the visibility of the modal (open/closed)
+  const [open, setOpen] = useState(false);
+
+  // State for appointment date, initialized to today's date in "YYYY-MM-DD" format
   const [appointment_date, setAppointmentDate] = useState(
-    new Date().toISOString().split('T')[0]
+    new Date().toISOString().split("T")[0]
   );
-  const [appointment_time, setAppointmentTime] = useState('');
-  const [client_id, setClientId] = useState('');
-  const [type, setType] = useState('Individual Session');
-  const [duration, setDuration] = useState('50 min');
-  const [details, setDetails] = useState('');
+  // State for appointment time
+  const [appointment_time, setAppointmentTime] = useState("");
+  // State for the selected client's ID
+  const [client_id, setClientId] = useState("");
+  // State for the type of session, with a default value
+  const [type, setType] = useState("Individual Session");
+  // State for the duration of the appointment, with a default value
+  const [duration, setDuration] = useState("50 min");
+  // State for optional appointment details/notes
+  const [details, setDetails] = useState("");
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  // State to store and display any error messages
+  const [error, setError] = useState("");
 
-  // ✅ Prefill date/time when a slot is passed
-  useEffect(() => {
-    if (prefilledSlot && isOpen) {
-      setAppointmentDate(prefilledSlot.date);
-      setAppointmentTime(prefilledSlot.time);
-    }
-  }, [prefilledSlot, isOpen]);
-
-  // ✅ Reset when modal closes
-  const handleOpenChange = (open) => {
-    if (!open) {
-      setClientId('');
-      setAppointmentDate(new Date().toISOString().split('T')[0]);
-      setAppointmentTime('');
-      setDetails('');
-      setError('');
-      if (onClose) onClose();
-    }
-    setIsOpen(open);
-  };
-
-  // ✅ Submit Handler
+  /**
+   * Handles the form submission logic.
+   * Prevents default form submission, validates required fields,
+   * sends data to the API, and manages success/error states.
+   * @param {Event} e - The form submission event.
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    // Clear any previous error messages
+    setError("");
 
     if (!client_id || !appointment_time || !appointment_date) {
-      setError('Please fill all required fields.');
-      return;
+      setError("Please fill all required fields.");
+      return; // Stop the function if validation fails
     }
 
     try {
@@ -86,38 +94,55 @@ export default function AddAppointmentModal({
         details,
       };
 
-      const res = await fetch('/api/appointments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+      // 5. API Call: Send a POST request to the appointments API endpoint
+      const res = await fetch("/api/appointments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData), // Convert JavaScript object to JSON string
       });
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || 'Failed to add appointment');
+        // Throw an error with a specific message or a generic one
+        throw new Error(err.error || "Failed to add appointment");
       }
 
       const created = await res.json();
+
+      // 8. Execute the 'onAdd' callback with the new data
       if (onAdd) onAdd(created);
 
-      handleOpenChange(false);
+      // 9. Reset form states for the next use
+      setClientId("");
+      setAppointmentTime("");
+      setAppointmentDate(new Date().toISOString().split("T")[0]); // Reset date to today
+      setType("Individual Session");
+      setDuration("50 min");
+      setDetails("");
+      setOpen(false); // Close the modal
     } catch (err) {
-      console.error('Add appointment error:', err);
-      setError(err.message || 'Something went wrong');
+      // 10. Handle network/API errors
+      console.error("Add appointment error:", err);
+      // Display the error message to the user
+      setError(err.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+    // Dialog component controls the modal's display
+    <Dialog open={open} onOpenChange={setOpen}>
+      {/* DialogTrigger wraps the button that opens the modal */}
       <DialogTrigger asChild>
         <Button variant="default" size="default" className="font-medium">
           Add Appointment
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-2xl">
+      {/* DialogContent contains the modal's structure and form */}
+      <DialogContent>
+        {/* Modal Header/Title section */}
         <DialogHeader>
           <DialogTitle className="text-teal-800">New Appointment</DialogTitle>
           <DialogDescription>
@@ -150,33 +175,36 @@ export default function AddAppointmentModal({
             </Select>
           </div>
 
-          {/* --- Date & Time --- */}
+          {/* Date and Time Fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Date Picker */}
             <div className="space-y-2">
-              <Label htmlFor="date" className="flex items-center gap-2">
+              <Label className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 Date
               </Label>
               <Input
-                type="date"
                 id="date"
+                type="date"
                 value={appointment_date}
+                // Update state when the input changes
                 onChange={(e) => setAppointmentDate(e.target.value)}
-                required
+                required // HTML validation attribute
                 className="h-11"
               />
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="time" className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-muted-foreground" />
-                Time
+                Time (UTC)
               </Label>
               <Input
                 id="time"
                 type="time"
                 value={appointment_time}
                 onChange={(e) => setAppointmentTime(e.target.value)}
-                required
+                required // HTML validation attribute
                 className="h-11"
               />
             </div>
@@ -203,6 +231,7 @@ export default function AddAppointmentModal({
             </div>
             <div className="space-y-2">
               <Label htmlFor="duration">Duration</Label>
+              {/* Simple Input for duration */}
               <Input
                 id="duration"
                 value={duration}
@@ -237,27 +266,25 @@ export default function AddAppointmentModal({
             </div>
           )}
 
-          {/* Buttons */}
+          {/* Footer buttons (Cancel and Submit) */}
           <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => handleOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={loading}
-              className="bg-teal-800 hover:bg-teal-900"
-            >
+            {/* DialogClose closes the modal when clicked */}
+            <DialogClose asChild>
+              <Button type="button" variant="outline" size="default">
+                Cancel
+              </Button>
+            </DialogClose>
+            
+            {/* Submit button with loading state */}
+            <Button type="submit" disabled={loading} size="default" className="bg-teal-800 hover:bg-teal-900">
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Saving...
                 </>
               ) : (
-                'Add Appointment'
+                // Show "Add Appointment" text when not loading
+                "Add Appointment"
               )}
             </Button>
           </div>

@@ -9,42 +9,49 @@ import { Users, AlertTriangle, FileText, Calendar, UserCheck, Clock, Eye, BarCha
 import AddAppointmentModal from "./schedule/AddAppointmentModal";
 
 
-export function DashboardOverview({
-  userRole,
-  clients = [],
-  schedule = [],
-  addAppointmentModalOpen,
-  setAddAppointmentModalOpen,
-  onAdd,
-}) {
+export function DashboardOverview({ userRole }) {
   const metrics = getMetricsForRole(userRole);
 
-  const [notifications, setNotifications] = useState([]);
+  const [notifications] = useState([
+    {
+      id: "1",
+      type: "referral",
+      title: "New client referral available",
+      time: "2 hours ago",
+      priority: "normal",
+    },
+    {
+      id: "2",
+      type: "appointment",
+      title: "Appointment reminder: John Doe at 10:30 AM",
+      time: "30 minutes ago",
+      priority: "normal",
+    },
+    {
+      id: "3",
+      type: "crisis",
+      title: "High-risk client flagged: Sarah Johnson",
+      time: "1 hour ago",
+      priority: "high",
+    },
+  ]);
 
+  const [todaySchedule, setTodaySchedule] = useState([]);
+
+  // This useEffect hook would fetch today's schedule from your API.
+  // For now, it just filters a static list to demonstrate.
   useEffect(() => {
-    const fetchNotifications = async () => {
+    const fetchTodaySchedule = async () => {
       try {
-        const response = await fetch('/api/notifications/mine');
-        if (response.ok) {
-          const data = await response.json();
-          setNotifications(Array.isArray(data) ? data : []);
-        }
+        const response = await fetch('/api/appointments?date=today');
+        const data = await response.json();
+        setTodaySchedule(data);
       } catch (error) {
-        console.error("Failed to fetch notifications:", error);
+        console.error("Failed to fetch today's schedule:", error);
       }
     };
-    fetchNotifications();
+    fetchTodaySchedule();
   }, []);
-
-  const todaySchedule = schedule.filter(appt => {
-    const apptDate = new Date(appt.appointment_date);
-    const today = new Date();
-    return (
-      apptDate.getFullYear() === today.getFullYear() &&
-      apptDate.getMonth() === today.getMonth() &&
-      apptDate.getDate() === today.getDate()
-    );
-  });
 
   return (
     <div className="space-y-6">

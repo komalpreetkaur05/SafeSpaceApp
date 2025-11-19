@@ -183,7 +183,7 @@ export default function SiteHeader() {
   // ---- Render placeholder during hydration ----
   if (!mounted) {
     return (
-      <header className="sticky top-0 z-40 w-full border-b bg-white/90 backdrop-blur">
+      <header className="sticky top-0 z-40 w-full border-b bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/60">
         <div className="flex h-14 items-center justify-between px-4">
           <div className="h-6 w-24 bg-gray-200 animate-pulse rounded"></div>
           <div className="h-8 w-8 bg-gray-200 animate-pulse rounded-full"></div>

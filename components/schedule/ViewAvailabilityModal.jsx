@@ -17,7 +17,6 @@ import { Clock, Edit, Save, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function ViewAvailabilityModal({ availability = [], onSelect, isOpen, onOpenChange, onSaveSuccess }) {
-  const [selectedSlot, setSelectedSlot] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editableAvailability, setEditableAvailability] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -32,6 +31,7 @@ export default function ViewAvailabilityModal({ availability = [], onSelect, isO
       setIsEditing(false);
     }
   }, [isOpen, availability]);
+  const [selectedSlot, setSelectedSlot] = useState(null);
 
   const upcomingSlots = useMemo(() => {
     const slots = [];
@@ -87,6 +87,7 @@ export default function ViewAvailabilityModal({ availability = [], onSelect, isO
         displayTime: `${selectedSlot.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} - ${new Date(selectedSlot.getTime() + 60 * 60 * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
       });
       setSelectedSlot(null);
+      onOpenChange(false);
     }
   };
 

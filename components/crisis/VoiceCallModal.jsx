@@ -32,7 +32,16 @@ const VoiceCallModal = ({ user, supervisor, onCallEnd }) => {
           throw new Error("Sendbird App ID is not configured.");
         }
         SendBirdCall.init(appId);
-        await SendBirdCall.authenticate({ userId: user.id, accessToken: null });
+
+        const tokenRes = await fetch('/api/sendbird-calls-token');
+        if (!tokenRes.ok) {
+          const errorText = await tokenRes.text();
+          console.error(`Failed to fetch Sendbird access token: ${tokenRes.status} - ${errorText}`);
+          throw new Error("Failed to fetch Sendbird access token.");
+        }
+        const { accessToken } = await tokenRes.json();
+
+        await SendBirdCall.authenticate({ userId: user.id, accessToken });
         await SendBirdCall.connectWebSocket();
       } catch (err) {
         console.error("Error initializing Sendbird Calls:", err);
@@ -116,15 +125,15 @@ const VoiceCallModal = ({ user, supervisor, onCallEnd }) => {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button onClick={startCall} className="w-full">
+        <Button onClick={startCall} className="w-full" disabled={!supervisor}>
           <Phone className="mr-2 h-4 w-4" />
-          Call Supervisor
+          {supervisor ? 'Call Supervisor' : 'Loading Supervisor...'}
         </Button>
       </DialogTrigger>
       {isCalling && (
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Calling {supervisor.name}...</DialogTitle>
+            <DialogTitle>Calling {supervisor?.name || 'Supervisor'}...</DialogTitle>
             <DialogDescription>{callStatus}</DialogDescription>
           </DialogHeader>
           {error && <p className="text-red-500">{error}</p>}

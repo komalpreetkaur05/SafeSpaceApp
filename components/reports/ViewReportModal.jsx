@@ -36,14 +36,38 @@ export default function ViewReportModal({ report, open, onClose }) {
             {report.name}
           </DialogTitle>
           <DialogDescription>
-            Generated on {new Date(report.created_at).toLocaleString()}
+            Generated on {new Date(report.created_at).toLocaleString()} • {report.type}
           </DialogDescription>
         </DialogHeader>
+
         <div className="flex-1 overflow-y-auto pr-2 bg-gray-50 p-4 rounded-lg border">
-          <pre className="text-sm whitespace-pre-wrap">
-            {JSON.stringify(report.data, null, 2)}
-          </pre>
+          {report.data ? (
+            <table className="w-full text-sm text-left border-collapse">
+              <tbody>
+                {Object.entries(report.data).map(([key, value]) => (
+                  <tr key={key} className="border-b last:border-b-0">
+                    <td className="py-2 px-4 font-medium capitalize text-gray-700 align-top">
+                      {key.replace(/_/g, " ")}
+                    </td>
+                    <td className="py-2 px-4 text-gray-900">
+                      {typeof value === "object" && value !== null
+                        ? Object.entries(value).map(([subKey, subValue]) => (
+                            <div key={subKey} className="flex">
+                              <span className="font-medium w-28 flex-shrink-0">{subKey.replace(/_/g, " ")}:</span>
+                              <span>{String(subValue)}</span>
+                            </div>
+                          ))
+                        : String(value)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p className="text-gray-600 text-sm text-center py-8">No preview available</p>
+          )}
         </div>
+
         <DialogFooter className="flex-shrink-0 mt-4">
           <Button variant="outline" onClick={onClose}>Close</Button>
         </DialogFooter>

@@ -1,20 +1,22 @@
-// app/api/audit-logs/route.js
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { getAuth } from "@clerk/nextjs/server";
+
+import { NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
+import { getAuth } from '@clerk/nextjs/server';
+
+const prisma = new PrismaClient();
 
 export async function GET(req) {
   try {
-    // Step 1: get Clerk user ID from session
-    const { userId: clerkUserId } = getAuth(req);
-    if (!clerkUserId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { userId } = getAuth(req);
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Step 2: lookup internal numeric user ID
+    // Find the user in our database using their Clerk ID
     const dbUser = await prisma.user.findUnique({
-      where: { clerk_user_id: clerkUserId },
+      where: { clerk_user_id: userId },
     });
+    console.log("Audit logs API: dbUser:", dbUser);
 
     if (!dbUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -23,7 +25,7 @@ export async function GET(req) {
     // Step 3: fetch audit logs using integer ID
     const auditLogs = await prisma.auditLog.findMany({
       where: {
-        user_id: dbUser.id, // must be integer
+        user_id: dbUser.id,
       },
       orderBy: {
         timestamp: "desc",
