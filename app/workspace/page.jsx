@@ -238,11 +238,12 @@ function InteractiveDashboardContent({ user, userRole = "support-worker", userNa
         },
         session_type: n.sessionType || "",
         note_date: n.noteDate || "",
-        duration_minutes: n.durationMinutes || null,
         summary: n.summary || "",
         detailed_notes: n.detailedNotes || "",
         risk_assessment: n.riskAssessment || "",
         next_steps: n.nextSteps || "",
+        activities: n.activities || [],
+        total_minutes: n.total_minutes || 0,
       };
     });
     
@@ -287,11 +288,12 @@ function InteractiveDashboardContent({ user, userRole = "support-worker", userNa
         clientId: String(noteData.client_id),
         noteDate: noteData.note_date,
         sessionType: noteData.session_type,
-        durationMinutes: noteData.duration_minutes ? parseInt(noteData.duration_minutes, 10) : undefined,
         summary: noteData.summary,
         detailedNotes: noteData.detailed_notes,
         riskAssessment: noteData.risk_assessment,
         nextSteps: noteData.next_steps,
+        activities: noteData.activities,
+        total_minutes: noteData.total_minutes,
       });
       closeModal('newNote');
     } catch (error) {
@@ -305,11 +307,12 @@ function InteractiveDashboardContent({ user, userRole = "support-worker", userNa
         noteId: noteData.id,
         noteDate: noteData.note_date,
         sessionType: noteData.session_type,
-        durationMinutes: noteData.duration_minutes ? parseInt(noteData.duration_minutes, 10) : undefined,
         summary: noteData.summary,
         detailedNotes: noteData.detailed_notes,
         riskAssessment: noteData.risk_assessment,
         nextSteps: noteData.next_steps,
+        activities: noteData.activities,
+        total_minutes: noteData.total_minutes,
       });
       closeModal('editNote');
     } catch (error) {

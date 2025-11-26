@@ -168,7 +168,7 @@ export default defineSchema({
 		authorUserId: v.string(), // Clerk ID of note author
 		noteDate: v.string(), // ISO date string
 		sessionType: v.optional(v.string()), // 'individual' | 'group' | 'family' | 'assessment'
-		durationMinutes: v.optional(v.number()),
+		legacy_duration_minutes: v.optional(v.number()),
 		summary: v.optional(v.string()),
 		detailedNotes: v.optional(v.string()),
 		riskAssessment: v.optional(v.string()),
@@ -176,6 +176,15 @@ export default defineSchema({
 		orgId: v.optional(v.string()),
 		createdAt: v.number(),
 		updatedAt: v.number(),
+		activities: v.optional(
+			v.array(
+				v.object({
+					type: v.string(),
+					minutes: v.number(),
+				})
+			)
+		),
+		total_minutes: v.optional(v.number()),
 	})
 		.index("by_client", ["clientId"])
 		.index("by_author", ["authorUserId"])

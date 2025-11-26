@@ -42,7 +42,10 @@ export const listForUser = query({
 export const listByClient = query({
   args: { clerkId: v.string(), clientId: v.string() },
   handler: async (ctx, { clerkId, clientId }) => {
-    await requirePermission(ctx, clerkId, PERMISSIONS.VIEW_NOTES);
+    const hasAccess = await hasPermission(ctx, clerkId, PERMISSIONS.VIEW_NOTES);
+    if (!hasAccess) {
+      return [];
+    }
     const items = await ctx.db
       .query("notes")
       .withIndex("by_client", (iq) => iq.eq("clientId", clientId))
@@ -62,6 +65,16 @@ export const create = mutation({
     detailedNotes: v.optional(v.string()),
     riskAssessment: v.optional(v.string()),
     nextSteps: v.optional(v.string()),
+    activities: v.optional(
+      v.array(
+        v.object({
+          id: v.union(v.number(), v.string()),
+          type: v.string(),
+          minutes: v.union(v.number(), v.string()),
+        })
+      )
+    ),
+    total_minutes: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     await requirePermission(ctx, args.clerkId, PERMISSIONS.MANAGE_NOTES);
@@ -78,7 +91,7 @@ export const create = mutation({
       authorUserId: args.clerkId,
       noteDate: sanitize(args.noteDate, 20)!,
       sessionType: sanitize(args.sessionType, 50),
-      durationMinutes: args.durationMinutes,
+      legacy_duration_minutes: args.durationMinutes,
       summary: sanitize(args.summary, 1000),
       detailedNotes: sanitize(args.detailedNotes, 8000),
       riskAssessment: sanitize(args.riskAssessment, 50),
@@ -86,6 +99,8 @@ export const create = mutation({
       orgId: me.orgId,
       createdAt: now,
       updatedAt: now,
+      activities: args.activities,
+      total_minutes: args.total_minutes,
     });
 
     await ctx.db.insert("auditLogs", {
@@ -112,6 +127,16 @@ export const update = mutation({
     detailedNotes: v.optional(v.string()),
     riskAssessment: v.optional(v.string()),
     nextSteps: v.optional(v.string()),
+    activities: v.optional(
+      v.array(
+        v.object({
+          id: v.union(v.number(), v.string()),
+          type: v.string(),
+          minutes: v.union(v.number(), v.string()),
+        })
+      )
+    ),
+    total_minutes: v.optional(v.number()),
   },
   handler: async (ctx, { clerkId, noteId, ...updates }) => {
     await requirePermission(ctx, clerkId, PERMISSIONS.MANAGE_NOTES);
@@ -133,11 +158,13 @@ export const update = mutation({
     const patch: any = { updatedAt: Date.now() };
     if (updates.noteDate !== undefined) patch.noteDate = sanitize(updates.noteDate, 20);
     if (updates.sessionType !== undefined) patch.sessionType = sanitize(updates.sessionType, 50);
-    if (updates.durationMinutes !== undefined) patch.durationMinutes = updates.durationMinutes;
+    if (updates.durationMinutes !== undefined) patch.legacy_duration_minutes = updates.durationMinutes;
     if (updates.summary !== undefined) patch.summary = sanitize(updates.summary, 1000);
     if (updates.detailedNotes !== undefined) patch.detailedNotes = sanitize(updates.detailedNotes, 8000);
     if (updates.riskAssessment !== undefined) patch.riskAssessment = sanitize(updates.riskAssessment, 50);
     if (updates.nextSteps !== undefined) patch.nextSteps = sanitize(updates.nextSteps, 1000);
+    if (updates.activities !== undefined) patch.activities = updates.activities;
+    if (updates.total_minutes !== undefined) patch.total_minutes = updates.total_minutes;
 
     await ctx.db.patch(noteId, patch);
 

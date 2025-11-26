@@ -14,7 +14,6 @@ export default function NewNoteModal({ isOpen, onClose, clients = [], onSave }) 
     client_id: '',
     session_type: '',
     note_date: new Date().toISOString().split('T')[0],
-    duration_minutes: '',
     summary: '',
     detailed_notes: '',
     risk_assessment: '',
