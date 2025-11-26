@@ -10,6 +10,9 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Edit, Plus, Trash2 } from "lucide-react"
 
 /**
+ * Commments and documentation added using Gemini
+ * Add proper comments to this file
+ * 
  * A modal dialog for editing existing case notes for a client.
  * It allows modification of note details, time tracking activities, and other metadata.
  *
