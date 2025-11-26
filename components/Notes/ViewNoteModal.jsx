@@ -6,18 +6,39 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Eye, Edit, Clock, Calendar, AlertCircle } from "lucide-react"
 
+/**
+ * A modal dialog for displaying the details of a single case note.
+ * It provides a read-only view of the note's content, time tracking, and metadata.
+ *
+ * @param {object} props - The component props.
+ * @param {boolean} props.isOpen - Controls whether the modal is open or closed.
+ * @param {Function} props.onClose - Callback function to close the modal.
+ * @param {Function} props.onEdit - Callback function to trigger the edit mode for the note.
+ * @param {object} props.note - The note object to display.
+ */
 export default function ViewNoteModal({ isOpen, onClose, onEdit, note }) {
+  // Do not render the modal if there is no note data.
   if (!note) return null
 
+  /**
+   * Closes the current view modal and triggers the onEdit callback
+   * to open the editing modal for the current note.
+   */
   const handleEdit = () => {
-    onClose()
-    onEdit(note)
+    onClose() // Close this modal first
+    onEdit(note) // Then trigger the edit modal
   }
 
+  // Calculate total minutes from either the detailed activities array or a pre-calculated total.
   const totalMinutes = note.activities 
     ? note.activities.reduce((sum, activity) => sum + (parseInt(activity.minutes) || 0), 0)
     : note.total_minutes || 0;
 
+  /**
+   * Determines the Tailwind CSS classes for the risk assessment badge based on the risk level.
+   * @param {string} risk - The risk level (e.g., 'low', 'medium', 'high').
+   * @returns {string} A string of CSS classes for styling.
+   */
   const getRiskColor = (risk) => {
     const colors = {
       low: "bg-green-100 text-green-800 border-green-200",

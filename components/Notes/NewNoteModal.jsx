@@ -9,21 +9,34 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 import { FileText, Plus, Trash2 } from "lucide-react"
 
+/**
+ * A modal dialog for creating a new case note for a client.
+ * It provides a form to input note details, track time, and specify other metadata.
+ *
+ * @param {object} props - The component props.
+ * @param {boolean} props.isOpen - Controls whether the modal is open or closed.
+ * @param {Function} props.onClose - Callback function to close the modal.
+ * @param {Array<object>} [props.clients=[]] - A list of client objects to populate the client selector.
+ * @param {Function} props.onSave - Callback function to save the new note data.
+ */
 export default function NewNoteModal({ isOpen, onClose, clients = [], onSave }) {
+  // State for managing the form data of the new note.
   const [formData, setFormData] = useState({
     client_id: '',
     session_type: '',
-    note_date: new Date().toISOString().split('T')[0],
+    note_date: new Date().toISOString().split('T')[0], // Defaults to today's date
     summary: '',
     detailed_notes: '',
     risk_assessment: '',
     next_steps: ''
   });
 
+  // State for managing time tracking activities associated with the note.
   const [activities, setActivities] = useState([
     { id: 1, type: '', minutes: 0 }
   ]);
 
+  // Pre-defined list of common activities for quick-add functionality.
   const commonActivities = [
     'Assessment',
     'Individual Session',
@@ -34,26 +47,48 @@ export default function NewNoteModal({ isOpen, onClose, clients = [], onSave }) 
     'Care Coordination'
   ];
 
+  // Calculates the total minutes from all activities.
   const totalMinutes = activities.reduce((sum, activity) => sum + (parseInt(activity.minutes) || 0), 0);
 
+  /**
+   * Adds a new, empty activity to the time tracking list.
+   */
   const addActivity = () => {
     setActivities([...activities, { id: Date.now(), type: '', minutes: 0 }]);
   };
 
+  /**
+   * Removes an activity from the list by its ID.
+   * @param {number} id - The unique identifier of the activity to remove.
+   */
   const removeActivity = (id) => {
     setActivities(activities.filter(activity => activity.id !== id));
   };
 
+  /**
+   * Updates a specific field of an activity in the list.
+   * @param {number} id - The ID of the activity to update.
+   * @param {string} field - The name of the field to update (e.g., 'type', 'minutes').
+   * @param {string|number} value - The new value for the field.
+   */
   const updateActivity = (id, field, value) => {
     setActivities(activities.map(activity => 
       activity.id === id ? { ...activity, [field]: value } : activity
     ));
   };
 
+  /**
+   * Adds a common activity type to the activities list with 0 minutes.
+   * @param {string} type - The type of the common activity to add.
+   */
   const addCommonActivity = (type) => {
     setActivities([...activities, { id: Date.now(), type, minutes: 0 }]);
   };
 
+  /**
+   * Prepares and sends the final note data to the onSave callback.
+   * This includes the form data, the list of activities, and the calculated total minutes.
+   */
   const handleSave = () => {
     onSave({
       ...formData,
@@ -72,7 +107,7 @@ export default function NewNoteModal({ isOpen, onClose, clients = [], onSave }) 
         </DialogHeader>
         
         <div className="flex-1 overflow-y-auto pr-2 space-y-6 py-4">
-          {/* Client and Date Row */}
+          {/* Client and Date Selection Row */}
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label className="text-sm font-semibold">Client</Label>
@@ -101,7 +136,7 @@ export default function NewNoteModal({ isOpen, onClose, clients = [], onSave }) 
             </div>
           </div>
 
-          {/* Case Notes */}
+          {/* Case Notes Text Area */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold">Case Notes</Label>
             <Textarea 
@@ -165,7 +200,7 @@ export default function NewNoteModal({ isOpen, onClose, clients = [], onSave }) 
               ))}
             </div>
 
-            {/* Common Activities */}
+            {/* Common Activities Quick-Add */}
             <div className="space-y-2 pt-2 border-t">
               <Label className="text-xs font-semibold text-gray-600">Common Activities</Label>
               <div className="flex flex-wrap gap-2">
@@ -184,14 +219,14 @@ export default function NewNoteModal({ isOpen, onClose, clients = [], onSave }) 
               </div>
             </div>
 
-            {/* Total Time */}
+            {/* Total Time Display */}
             <div className="flex items-center justify-between pt-3 border-t">
               <span className="text-sm font-semibold">Total Time:</span>
               <span className="text-lg font-bold text-teal-600">{totalMinutes} minutes</span>
             </div>
           </div>
 
-          {/* Additional Fields */}
+          {/* Additional Metadata Fields */}
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label className="text-sm font-semibold">Session Type</Label>

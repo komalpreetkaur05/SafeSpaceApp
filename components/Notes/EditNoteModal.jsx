@@ -9,7 +9,18 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 import { Edit, Plus, Trash2 } from "lucide-react"
 
+/**
+ * A modal dialog for editing existing case notes for a client.
+ * It allows modification of note details, time tracking activities, and other metadata.
+ *
+ * @param {object} props - The component props.
+ * @param {boolean} props.isOpen - Controls whether the modal is open or closed.
+ * @param {Function} props.onClose - Callback function to close the modal.
+ * @param {object} props.note - The note object containing the data to be edited.
+ * @param {Function} props.onSave - Callback function to save the updated note data.
+ */
 export default function EditNoteModal({ isOpen, onClose, note, onSave }) {
+  // State for managing the form data of the note being edited.
   const [formData, setFormData] = useState({
     client_id: '',
     session_type: '',
@@ -20,10 +31,12 @@ export default function EditNoteModal({ isOpen, onClose, note, onSave }) {
     next_steps: ''
   });
 
+  // State for managing time tracking activities associated with the note.
   const [activities, setActivities] = useState([
     { id: 1, type: '', minutes: 0 }
   ]);
 
+  // Pre-defined list of common activities for quick-add functionality.
   const commonActivities = [
     'Assessment',
     'Individual Session',
@@ -34,9 +47,13 @@ export default function EditNoteModal({ isOpen, onClose, note, onSave }) {
     'Care Coordination'
   ];
 
+  // Calculates the total minutes from all activities.
   const totalMinutes = activities.reduce((sum, activity) => sum + (parseInt(activity.minutes) || 0), 0);
 
-  // Update form data when note changes
+  /**
+   * Effect hook to populate the form when a `note` object is provided.
+   * It runs whenever the `note` prop changes.
+   */
   useEffect(() => {
     if (note) {
       setFormData({
@@ -50,7 +67,7 @@ export default function EditNoteModal({ isOpen, onClose, note, onSave }) {
         next_steps: note.next_steps || ''
       });
 
-      // Load existing activities or create default
+      // Load existing activities from the note, or set a default empty activity.
       if (note.activities && note.activities.length > 0) {
         setActivities(note.activities.map((act, idx) => ({
           id: idx + 1,
@@ -63,24 +80,45 @@ export default function EditNoteModal({ isOpen, onClose, note, onSave }) {
     }
   }, [note]);
 
+  /**
+   * Adds a new, empty activity to the time tracking list.
+   */
   const addActivity = () => {
     setActivities([...activities, { id: Date.now(), type: '', minutes: 0 }]);
   };
 
+  /**
+   * Removes an activity from the list by its ID.
+   * @param {number} id - The unique identifier of the activity to remove.
+   */
   const removeActivity = (id) => {
     setActivities(activities.filter(activity => activity.id !== id));
   };
 
+  /**
+   * Updates a specific field of an activity in the list.
+   * @param {number} id - The ID of the activity to update.
+   * @param {string} field - The name of the field to update (e.g., 'type', 'minutes').
+   * @param {string|number} value - The new value for the field.
+   */
   const updateActivity = (id, field, value) => {
     setActivities(activities.map(activity => 
       activity.id === id ? { ...activity, [field]: value } : activity
     ));
   };
 
+  /**
+   * Adds a common activity type to the activities list with 0 minutes.
+   * @param {string} type - The type of the common activity to add.
+   */
   const addCommonActivity = (type) => {
     setActivities([...activities, { id: Date.now(), type, minutes: 0 }]);
   };
 
+  /**
+   * Prepares and sends the final note data to the onSave callback.
+   * This includes the form data, the list of activities, and the calculated total minutes.
+   */
   const handleSave = () => {
     onSave({
       ...formData,
@@ -89,6 +127,7 @@ export default function EditNoteModal({ isOpen, onClose, note, onSave }) {
     });
   };
 
+  // Do not render the modal if there is no note to edit.
   if (!note) return null;
 
   return (
@@ -187,7 +226,7 @@ export default function EditNoteModal({ isOpen, onClose, note, onSave }) {
               ))}
             </div>
 
-            {/* Common Activities */}
+            {/* Common Activities Quick-Add */}
             <div className="space-y-2 pt-2 border-t">
               <Label className="text-xs font-semibold text-gray-600">Common Activities</Label>
               <div className="flex flex-wrap gap-2">
@@ -206,14 +245,14 @@ export default function EditNoteModal({ isOpen, onClose, note, onSave }) {
               </div>
             </div>
 
-            {/* Total Time */}
+            {/* Total Time Display */}
             <div className="flex items-center justify-between pt-3 border-t">
               <span className="text-sm font-semibold">Total Time:</span>
               <span className="text-lg font-bold text-teal-600">{totalMinutes} minutes</span>
             </div>
           </div>
 
-          {/* Additional Fields */}
+          {/* Additional Metadata Fields */}
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label className="text-sm font-semibold">Session Type</Label>
