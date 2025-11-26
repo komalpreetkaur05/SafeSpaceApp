@@ -8,7 +8,8 @@ export const heartbeat = mutation({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new Error("Unauthenticated");
+      // Not logged in, so just return
+      return { ok: false, lastSeen: 0 };
     }
 
     const userId = identity.subject; // Clerk user id

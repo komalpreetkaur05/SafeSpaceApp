@@ -4,7 +4,7 @@
 
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { requirePermission, PERMISSIONS } from "./auth";
+import { requirePermission, PERMISSIONS, hasPermission } from "./auth";
 
 /**
  * Create an appointment. If org is 'cmha-calgary' and no supportWorkerId is provided,
@@ -135,7 +135,10 @@ export const listByDate = query({
   },
   handler: async (ctx, { clerkId, date, orgId, userId }) => {
     // Viewing appointments is permitted broadly among staff
-    await requirePermission(ctx, clerkId, PERMISSIONS.VIEW_APPOINTMENTS);
+    const hasAccess = await hasPermission(ctx, clerkId, PERMISSIONS.VIEW_APPOINTMENTS);
+    if (!hasAccess) {
+      return [];
+    }
 
     // Begin with a Query (not QueryInitializer) to keep typing consistent
     let q = ctx.db.query("appointments").fullTableScan();

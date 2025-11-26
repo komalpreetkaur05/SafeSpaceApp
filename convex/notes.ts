@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { PERMISSIONS, requirePermission } from "./auth";
+import { PERMISSIONS, requirePermission, hasPermission } from "./auth";
 
 function sanitize(input: string | undefined, max = 2000) {
   if (input == null) return undefined;
@@ -12,7 +12,10 @@ function sanitize(input: string | undefined, max = 2000) {
 export const listForUser = query({
   args: { clerkId: v.string(), orgId: v.optional(v.string()) },
   handler: async (ctx, { clerkId, orgId }) => {
-    await requirePermission(ctx, clerkId, PERMISSIONS.VIEW_NOTES);
+    const hasAccess = await hasPermission(ctx, clerkId, PERMISSIONS.VIEW_NOTES);
+    if (!hasAccess) {
+      return [];
+    }
 
     // Scope to org if provided; else, infer from user
     let targetOrg = orgId as string | undefined;

@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { PERMISSIONS, requirePermission, isSuperAdmin, hasOrgAccess } from "./auth";
+import { PERMISSIONS, requirePermission, isSuperAdmin, hasOrgAccess, hasPermission } from "./auth";
 
 function sanitizeString(input: string | undefined, maxLength = 200): string | undefined {
   if (input == null) return undefined;
@@ -31,7 +31,10 @@ export const list = query({
     search: v.optional(v.string()),
   },
   handler: async (ctx, { clerkId, orgId, status, search }) => {
-    await requirePermission(ctx, clerkId, PERMISSIONS.VIEW_CLIENTS);
+    const hasAccess = await hasPermission(ctx, clerkId, PERMISSIONS.VIEW_CLIENTS);
+    if (!hasAccess) {
+      return [];
+    }
 
     // Scope by org unless SuperAdmin requests a specific org
     let q = ctx.db.query("clients").fullTableScan();
