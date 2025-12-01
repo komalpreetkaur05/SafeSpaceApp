@@ -45,7 +45,7 @@ export function DashboardOverview({ userRole }) {
   const today = new Date().toISOString().split("T")[0];
   const convexToday = useQuery(
     api.appointments.listByDate,
-    isLoaded && user?.id ? { clerkId: user.id, date: today } : "skip"
+    isLoaded && user?.id && userRole !== "support-worker" ? { clerkId: user.id, date: today } : "skip"
   );
 
   useEffect(() => {

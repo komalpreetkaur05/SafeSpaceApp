@@ -154,16 +154,16 @@ function InteractiveDashboardContent({ user, userRole = "support-worker", userNa
   // Load Convex data for clients, today's appointments, and my notes
   const isUserLoaded = Boolean(user?.id);
   const convexClients = useQuery(
-    api.clients.list,
-    isUserLoaded ? { clerkId: user.id } : 'skip'
+    api.clients.list, // This query requires 'view_clients' permission
+    isUserLoaded && userRole !== "support-worker" ? { clerkId: user.id } : 'skip'
   ) || [];
   const convexTodaysAppts = useQuery(
     api.appointments.listByDate,
-    isUserLoaded ? { clerkId: user.id, date: selectedDate } : 'skip'
+    isUserLoaded && userRole !== "support-worker" ? { clerkId: user.id, date: selectedDate } : 'skip'
   ) || [];
   const convexMyNotes = useQuery(
     api.notes.listForUser,
-    isUserLoaded ? { clerkId: user.id } : 'skip'
+    isUserLoaded && userRole !== "support-worker" ? { clerkId: user.id } : 'skip'
   ) || [];
 
   // Map Convex data into the legacy UI shapes used in this view

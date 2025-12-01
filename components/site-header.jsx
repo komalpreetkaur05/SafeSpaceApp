@@ -22,7 +22,7 @@ function getInitials(name) {
 }
 
 export default function SiteHeader() {
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, isLoaded } = useAuth();
   const { user } = useUser();
   const isAuthenticated = !!isSignedIn;
   const userName = user?.fullName ?? null;
@@ -37,7 +37,7 @@ export default function SiteHeader() {
   // Load profile from Convex
   const convexSelf = useQuery(
     api.users.getByClerkId,
-    isAuthenticated && user?.id ? { clerkId: user.id } : "skip"
+    isLoaded && isAuthenticated && user?.id ? { clerkId: user.id } : "skip"
   );
 
   useEffect(() => {
@@ -74,7 +74,7 @@ export default function SiteHeader() {
 
   const convexNotifications = useQuery(
     api.notifications.listMine,
-    isAuthenticated && user?.id ? { userId: user.id } : "skip"
+    isLoaded && isAuthenticated && user?.id ? { userId: user.id } : "skip"
   );
 
   useEffect(() => {

@@ -12,7 +12,20 @@ export async function GET() {
 
     // Get user from Convex
     const dbUser = await convex.query(api.users.getByClerkId, { clerkId: userId });
-    if (!dbUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
+    if (!dbUser) {
+      // If user is not found (e.g., on first login), return a default empty state
+      // to prevent a 404 error on the client.
+      return NextResponse.json({
+        metrics: {
+          totalClients: 0, totalNotes: 0, totalAppointments: 0, highRiskClients: 0,
+          crisisEvents: 0, pendingReferrals: 0, activeClients: 0, todaysSessions: 0
+        },
+        notifications: [],
+        upcomingAppointments: [],
+        role: "support_worker"
+      });
+    }
+
 
     const roleName = dbUser.roleId || "support_worker";
     const isTeamLeader = roleName === "team_leader";
