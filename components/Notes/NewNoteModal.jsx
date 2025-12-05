@@ -47,7 +47,7 @@ export default function NewNoteModal({ isOpen, onClose, clients = [], onSave }) 
                 </SelectTrigger>
                 <SelectContent>
                   {clients.map(client => (
-                    <SelectItem key={client.id} value={String(client.id)}>{client.client_first_name} {client.client_last_name}</SelectItem>
+                    <SelectItem key={client._id || client.id} value={String(client._id || client.id)}>{client.clientFirstName || client.client_first_name} {client.clientLastName || client.client_last_name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

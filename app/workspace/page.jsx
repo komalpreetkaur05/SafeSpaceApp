@@ -172,8 +172,12 @@ function InteractiveDashboardContent({ user, userRole = "support-worker", userNa
     
     // Map clients into legacy shape used in this view and modals
     const mappedClients = convexClients.map((c) => ({
+      // Keep both formats for compatibility
+      _id: c._id,
       id: String(c._id),
+      firstName: c.firstName || "",
       client_first_name: c.firstName || "",
+      lastName: c.lastName || "",
       client_last_name: c.lastName || "",
       email: c.email || "",
       phone: c.phone || "",
